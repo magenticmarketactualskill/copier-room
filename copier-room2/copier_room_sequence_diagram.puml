@@ -1,0 +1,113 @@
+@startuml Copier-Room Framework Integration Sequence
+
+!define FRAMEWORK_COLOR #FFCCBC
+!define ADAPTER_COLOR #FFF9C4
+!define PORT_COLOR #BBDEFB
+!define CORE_COLOR #E8F5E9
+!define STORAGE_COLOR #E1BEE7
+
+skinparam participant {
+    BackgroundColor<<framework>> FRAMEWORK_COLOR
+    BorderColor<<framework>> #FF5722
+    BackgroundColor<<adapter>> ADAPTER_COLOR
+    BorderColor<<adapter>> #FFC107
+    BackgroundColor<<port>> PORT_COLOR
+    BorderColor<<port>> #2196F3
+    BackgroundColor<<core>> CORE_COLOR
+    BorderColor<<core>> #4CAF50
+    BackgroundColor<<storage>> STORAGE_COLOR
+    BorderColor<<storage>> #9C27B0
+}
+
+actor "Developer" as Dev
+participant "Rails App" as Rails <<framework>>
+participant "Rails Client\nAdapter" as RailsAdapter <<adapter>>
+participant "JSON-RPC-LD\nAPI Port" as JSONRPC <<port>>
+participant "Function Chain\nProcessor" as FunctionChain <<core>>
+participant "Template\nResolver" as TemplateResolver <<core>>
+participant "Content\nComposer" as ContentComposer <<core>>
+participant "Git Engine" as GitEngine <<core>>
+database "Ontological\nStorage" as Storage <<storage>>
+
+== Request Phase ==
+
+Dev -> Rails: Trigger content generation\n(e.g., rails generate view)
+activate Rails
+
+Rails -> RailsAdapter: Request component generation\n(framework-specific call)
+activate RailsAdapter
+
+RailsAdapter -> RailsAdapter: Read .copier-room.json\nfor function chain references
+note right: .copier-room.json contains\nreferences to functions\nto be chained
+
+RailsAdapter -> JSONRPC: JSON-RPC-LD Request\n{\n  "jsonrpc": "2.0",\n  "method": "generateComponent",\n  "params": {\n    "@context": {...},\n    "componentType": "view",\n    "platform": "web",\n    "framework": "rails"\n  }\n}
+activate JSONRPC
+
+== Processing Phase ==
+
+JSONRPC -> FunctionChain: Route request to function chain
+activate FunctionChain
+
+FunctionChain -> FunctionChain: Parse function chain\nfrom .copier-room.json
+
+FunctionChain -> TemplateResolver: Resolve templates\nfrom ontological storage
+activate TemplateResolver
+
+TemplateResolver -> Storage: Query functional repository\n(ui.hier, ui.data, etc.)
+activate Storage
+Storage --> TemplateResolver: Return template references
+deactivate Storage
+
+TemplateResolver -> Storage: Query contextual repository\n(platform/framework specific)
+activate Storage
+Storage --> TemplateResolver: Return context-specific code
+deactivate Storage
+
+TemplateResolver --> FunctionChain: Resolved templates
+deactivate TemplateResolver
+
+FunctionChain -> ContentComposer: Compose output from templates
+activate ContentComposer
+
+ContentComposer -> ContentComposer: Apply functional programming\nmethod-chaining transformations
+
+ContentComposer --> FunctionChain: Composed content
+deactivate ContentComposer
+
+FunctionChain -> GitEngine: Track changes and version
+activate GitEngine
+
+GitEngine -> Storage: Commit changes to repository
+activate Storage
+Storage --> GitEngine: Confirmation
+deactivate Storage
+
+GitEngine --> FunctionChain: Version info
+deactivate GitEngine
+
+== Response Phase ==
+
+FunctionChain --> JSONRPC: Processing complete
+deactivate FunctionChain
+
+JSONRPC --> RailsAdapter: JSON-RPC-LD Response\n{\n  "jsonrpc": "2.0",\n  "result": {\n    "@context": {...},\n    "generatedFiles": [...],\n    "version": "abc123"\n  }\n}
+deactivate JSONRPC
+
+RailsAdapter -> RailsAdapter: Translate response to\nRails-specific format
+
+RailsAdapter --> Rails: Generated component\n(in-stream with workflow)
+deactivate RailsAdapter
+
+Rails --> Dev: Component ready\n(integrated in project)
+deactivate Rails
+
+note over Dev, Storage
+  **Key Benefits:**
+  1. Framework-agnostic core logic
+  2. Semantic communication via JSON-RPC-LD
+  3. Reusable ontological storage
+  4. Version control built-in
+  5. In-stream integration with framework workflows
+end note
+
+@enduml
